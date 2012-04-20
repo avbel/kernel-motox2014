@@ -19,6 +19,8 @@
 
 #include <trace/events/sched.h>
 
+#include "smpboot.h"
+
 #ifdef CONFIG_SMP
 /* Serializes the updates to cpu_online_mask, cpu_present_mask */
 static DEFINE_MUTEX(cpu_add_remove_lock);
@@ -231,6 +233,11 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen)
 		return -EINVAL;
 
 	cpu_hotplug_begin();
+
+	ret = smpboot_prepare(cpu);
+	if (ret)
+		goto out;
+
 
 	err = __cpu_notify(CPU_DOWN_PREPARE | mod, hcpu, -1, &nr_calls);
 	if (err) {
