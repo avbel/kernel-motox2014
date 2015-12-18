@@ -1770,6 +1770,7 @@ __read_mostly unsigned int sysctl_sched_wakeup_load_threshold = 110;
  * Returns %true if @p was woken up, %false if it was already running
  * or @state didn't match @p's state.
  */
+int notify;
 static int
 try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 {
