@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -36,7 +36,6 @@ struct cpu_sync {
 	int cpu;
 	spinlock_t lock;
 	bool pending;
-	atomic_t being_woken;
 	int src_cpu;
 	unsigned int boost_min;
 	unsigned int input_boost_min;
@@ -296,6 +295,7 @@ static void run_boost_migration(unsigned int cpu)
 	}
 	put_online_cpus();
 }
+
 static void cpuboost_set_prio(unsigned int policy, unsigned int prio)
 {
 	struct sched_param param = { .sched_priority = prio };
@@ -353,16 +353,6 @@ static int boost_migration_notify(struct notifier_block *nb,
 	s->src_cpu = mnd->src_cpu;
 	s->task_load = load_based_syncs ? mnd->load : 0;
 	spin_unlock_irqrestore(&s->lock, flags);
-	/*
-	* Avoid issuing recursive wakeup call, as sync thread itself could be
-	* seen as migrating triggering this notification. Note that sync thread
-	* of a cpu could be running for a short while with its affinity broken
-	* because of CPU hotplug.
-	*/
-	if (!atomic_cmpxchg(&s->being_woken, 0, 1)) {
-		wake_up(&s->sync_wq);
-		atomic_set(&s->being_woken, 0);
-	}
 
 	return NOTIFY_OK;
 }
@@ -576,7 +566,6 @@ static int cpu_boost_init(void)
 	for_each_possible_cpu(cpu) {
 		s = &per_cpu(sync_info, cpu);
 		s->cpu = cpu;
-		atomic_set(&s->being_woken, 0);
 		spin_lock_init(&s->lock);
 		INIT_DELAYED_WORK(&s->boost_rem, do_boost_rem);
 	}
