@@ -105,7 +105,6 @@ struct cpu_dbs_info_s {
 	 */
 	struct mutex timer_mutex;
 
-	wait_queue_head_t sync_wq;
 	atomic_t src_sync_cpu;
 	atomic_t being_woken;
 	atomic_t sync_enabled;
@@ -1065,7 +1064,6 @@ static int dbs_migration_notify(struct notifier_block *nb,
 	* because of CPU hotplug.
 	*/
 	if (!atomic_cmpxchg(&target_dbs_info->being_woken, 0, 1)) {
-		wake_up(&target_dbs_info->sync_wq);
 		atomic_set(&target_dbs_info->being_woken, 0);
 	}
 
@@ -1425,7 +1423,6 @@ static int __init cpufreq_gov_dbs_init(void)
 
 		atomic_set(&this_dbs_info->src_sync_cpu, -1);
 		atomic_set(&this_dbs_info->being_woken, 0);
-		init_waitqueue_head(&this_dbs_info->sync_wq);
 	}
 
 	rc = smpboot_register_percpu_thread(&dbs_sync_threads);
