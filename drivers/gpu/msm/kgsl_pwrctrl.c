@@ -494,7 +494,7 @@ static int kgsl_pwrctrl_gpuclk_show(struct device *dev,
 		level = pwr->num_pwrlevels - 1;
 	else
 		level = pwr->active_pwrlevel;
-	return snprintf(buf, PAGE_SIZE, "%ld\n",
+	return snprintf(buf, PAGE_SIZE, "%d\n",
 			pwr->pwrlevels[level].gpu_freq);
 }
 
