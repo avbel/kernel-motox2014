@@ -1909,7 +1909,8 @@ out:
 
 	if (notify)
 		atomic_notifier_call_chain(&migration_notifier_head,
-  
+                                           0, (void *)&mnd);
+
 	return success;
 }
 
