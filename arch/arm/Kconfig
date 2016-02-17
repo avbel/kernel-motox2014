@@ -21,6 +21,7 @@ config ARM
 	select HAVE_DYNAMIC_FTRACE if (!XIP_KERNEL && !ARCH_MSM)
 	select HAVE_FUNCTION_GRAPH_TRACER if (!THUMB2_KERNEL)
 	select ARCH_BINFMT_ELF_RANDOMIZE_PIE
+	select HAVE_EFFICIENT_UNALIGNED_ACCESS
 	select HAVE_GENERIC_DMA_COHERENT
 	select HAVE_KERNEL_GZIP
 	select HAVE_KERNEL_LZO
@@ -37,6 +38,10 @@ config ARM
 	select CPU_PM if (SUSPEND || CPU_IDLE)
 	select GENERIC_PCI_IOMAP
 	select HAVE_BPF_JIT if NET
+	select GENERIC_SMP_IDLE_THREAD
+	select GENERIC_STRNCPY_FROM_USER
+	select GENERIC_STRNLEN_USER
+	select DCACHE_WORD_ACCESS if (CPU_V6 || CPU_V6K || CPU_V7) && !CPU_BIG_ENDIAN
 	help
 	  The ARM series is a line of low-power-consumption RISC chip designs
 	  licensed by ARM Ltd and targeted at embedded applications and
@@ -161,10 +166,9 @@ config ARM_TICKET_LOCKS
 
 config RWSEM_GENERIC_SPINLOCK
 	bool
-	default y
 
 config RWSEM_XCHGADD_ALGORITHM
-	bool
+	def_bool y
 
 config ARCH_HAS_ILOG2_U32
 	bool
@@ -1366,6 +1370,16 @@ config PL310_ERRATA_588369
 	   is not correctly implemented in PL310 as clean lines are not
 	   invalidated as a result of these operations.
 
+config ARM_ERRATA_643719
+	bool "ARM errata: LoUIS bit field in CLIDR register is incorrect"
+	depends on CPU_V7 && SMP
+	help
+	  This option enables the workaround for the 643719 Cortex-A9 (prior to
+	  r1p0) erratum. On affected cores the LoUIS bit field of the CLIDR
+	  register returns zero when it should return one. The workaround
+	  corrects this value, ensuring cache maintenance operations which use
+	  it behave as intended and avoiding data corruption.
+
 config ARM_ERRATA_720789
 	bool "ARM errata: TLBIASIDIS and TLBIMVAIS operations can broadcast a faulty ASID"
 	depends on CPU_V7
@@ -1508,6 +1522,16 @@ config ARM_ERRATA_775420
 	 operation aborts with MMU exception, it might cause the processor
 	 to deadlock. This workaround puts DSB before executing ISB if
 	 an abort may occur on cache maintenance.
+
+config ARM_ERRATA_798181
+	bool "ARM errata: TLBI/DSB failure on Cortex-A15"
+	depends on CPU_V7 && SMP
+	help
+	  On Cortex-A15 (r0p0..r3p2) the TLBI*IS/DSB operations are not
+	  adequately shooting down all use of the old entries. This
+	  option enables the Linux kernel workaround for this erratum
+	  which sends an IPI to the CPUs that are running the same ASID
+	  as the one being invalidated.
 
 endmenu
 

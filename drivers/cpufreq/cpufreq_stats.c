@@ -22,6 +22,8 @@
 #include <linux/notifier.h>
 #include <linux/sort.h>
 #include <linux/err.h>
+#include <linux/sort.h>
+#include <linux/err.h>
 #include <linux/of.h>
 #include <linux/sched.h>
 #include <asm/cputime.h>
@@ -376,8 +378,10 @@ static int cpufreq_stats_create_table(struct cpufreq_policy *policy,
 	struct cpufreq_policy *data;
 	unsigned int alloc_size;
 	unsigned int cpu = policy->cpu;
+
 	if (per_cpu(cpufreq_stats_table, cpu))
-		return -EBUSY;
+		return 0;
+
 	stat = kzalloc(sizeof(struct cpufreq_stats), GFP_KERNEL);
 	if ((stat) == NULL)
 		return -ENOMEM;
@@ -507,6 +511,18 @@ static void create_all_freq_table(void)
 	if (!all_freq_table)
 		pr_warn("could not allocate memory for all_freq_table\n");
 	return;
+}
+
+static void free_all_freq_table(void)
+{
+	if (all_freq_table) {
+		if (all_freq_table->freq_table) {
+			kfree(all_freq_table->freq_table);
+			all_freq_table->freq_table = NULL;
+		}
+		kfree(all_freq_table);
+		all_freq_table = NULL;
+	}
 }
 
 static void add_all_freq_table(unsigned int freq)
@@ -725,11 +741,14 @@ static int __init cpufreq_stats_init(void)
 	if (ret)
 		return ret;
 
+	create_all_freq_table();
+
 	ret = cpufreq_register_notifier(&notifier_trans_block,
 				CPUFREQ_TRANSITION_NOTIFIER);
 	if (ret) {
 		cpufreq_unregister_notifier(&notifier_policy_block,
 				CPUFREQ_POLICY_NOTIFIER);
+		free_all_freq_table();
 		return ret;
 	}
 
@@ -738,7 +757,6 @@ static int __init cpufreq_stats_init(void)
 		cpufreq_update_policy(cpu);
 	}
 
-	create_all_freq_table();
 	ret = sysfs_create_file(cpufreq_global_kobject,
 			&_attr_all_time_in_state.attr);
 	if (ret)
@@ -751,6 +769,7 @@ static int __init cpufreq_stats_init(void)
 
 	return 0;
 }
+
 static void __exit cpufreq_stats_exit(void)
 {
 	unsigned int cpu;

@@ -5076,6 +5076,7 @@ static const struct v4l2_ioctl_ops iris_ioctl_ops = {
 	.vidioc_g_ext_ctrls           = iris_vidioc_g_ext_ctrls,
 };
 
+
 static const struct v4l2_file_operations iris_fops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = video_ioctl2,
